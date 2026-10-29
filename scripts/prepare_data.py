@@ -150,8 +150,26 @@ def prepare(input_dir: Path, output_dir: Path) -> dict[str, object]:
     if (sales["Revenue"] < 0).any():
         raise ValueError("Sales contains negative revenue values.")
 
-    # Stage 5: enrich the sales fact table. Temporary key names prevent pandas
-    # from creating confusing _x and _y columns when both tables share a name.
+    # Stage 5: build the flat analytical table with four LEFT JOIN operations.
+    #
+    # Sales is always the left table. That means the result must retain the Sales
+    # grain: one row per store, month, and product. Each lookup table is on the
+    # right and must have exactly one row for every matching key. The
+    # validate="many_to_one" rule inside validated_join enforces that cardinality.
+    # After every join, validated_join also confirms that:
+    #   1. the row count still equals the Sales row count,
+    #   2. every left-side key found a right-side match, and
+    #   3. total Revenue did not change.
+    # These controls prevent a duplicate lookup key from multiplying sales rows
+    # and inflating revenue.
+    #
+    # Temporary names such as Category Key prevent pandas from creating
+    # confusing _x and _y suffixes when two tables contain similarly named keys.
+
+    # JOIN 1
+    # Left:  Sales[Category ID] (many sales rows per category)
+    # Right: Categories[Category ID] (one row per category)
+    # Adds:  the readable Category name
     enriched = validated_join(
         sales,
         categories.rename(columns={"Category ID": "Category Key"}),
@@ -159,6 +177,12 @@ def prepare(input_dir: Path, output_dir: Path) -> dict[str, object]:
         right_on="Category Key",
         label="Category",
     ).drop(columns="Category Key")
+
+    # JOIN 2
+    # Left:  enriched Sales[Product ID] (many sales rows per product)
+    # Right: Products[Product ID] (one row per product)
+    # Adds:  the readable Product name. Product ID is required because the
+    #        Product text is not unique (three products are named "Base Model").
     enriched = validated_join(
         enriched,
         products.rename(columns={"Product ID": "Product Key"}),
@@ -166,6 +190,11 @@ def prepare(input_dir: Path, output_dir: Path) -> dict[str, object]:
         right_on="Product Key",
         label="Product",
     ).drop(columns="Product Key")
+
+    # JOIN 3
+    # Left:  enriched Sales[Store ID] (many sales rows per store)
+    # Right: E-Presso Stores[ID] (one row per store or website)
+    # Adds:  City, State, PostalCode, StoreType, Market, and Location
     enriched = validated_join(
         enriched,
         stores.rename(columns={"ID": "Store Key"}),
@@ -173,6 +202,15 @@ def prepare(input_dir: Path, output_dir: Path) -> dict[str, object]:
         right_on="Store Key",
         label="Store",
     ).drop(columns="Store Key")
+
+    # JOIN 4
+    # Left:  enriched Sales[StoreYear] (many monthly/product rows per store-year)
+    # Right: Survey Results[Survey ID] (one annual survey row per store-year)
+    # Adds:  Survey Year, Satisfaction, and Interest
+    #
+    # Example: Sales StoreYear "SH01_25" matches Survey ID "SH01_25".
+    # Do not join Sales[Store ID] to Survey Results[Survey ID]: values such as
+    # "SH01" and "SH01_25" are different keys and would produce no matches.
     enriched = validated_join(
         enriched,
         survey.rename(
@@ -182,8 +220,6 @@ def prepare(input_dir: Path, output_dir: Path) -> dict[str, object]:
                 "Year": "Survey Year",
             }
         ),
-        # StoreYear is the correct store-and-year key. Joining Sales[Store ID]
-        # directly to Survey Results[Survey ID] would produce zero matches.
         left_on="StoreYear",
         right_on="Survey Key",
         label="Survey",
