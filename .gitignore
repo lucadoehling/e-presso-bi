@@ -6,7 +6,6 @@ venv/
 .streamlit/secrets.toml
 
 # Local data and BI source files
-data/raw/
 data/private/
 *.accdb
 *.mdb
