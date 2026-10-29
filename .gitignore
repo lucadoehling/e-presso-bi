@@ -1,0 +1,23 @@
+# Python
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+.streamlit/secrets.toml
+
+# Local data and BI source files
+data/raw/
+data/private/
+*.accdb
+*.mdb
+*.pbix
+*.xlsx
+*.xls
+~$*
+
+# Environment and editor files
+.env
+.DS_Store
+.vscode/
+.idea/
+
