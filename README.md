@@ -33,6 +33,8 @@ The command checks the expected five-year revenue control total of
 `$42,174,440.00`. Raw and generated data are excluded from Git.
 
 See `docs/data_dictionary.md` for table grain, fields, and relationships.
+See `docs/pbix_migration_methods.md` for the PBIX inspection, command-line
+workflow, Looker Studio migration method, validation controls, and AI-use record.
 - A controlled analytical assistant
 - Validation and updated-data test evidence
 
