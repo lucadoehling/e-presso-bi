@@ -7,6 +7,32 @@ The project will include:
 - A Looker Studio baseline analysis
 - A Python and Streamlit analytical dashboard
 - Reusable analytical functions
+
+## Data preparation
+
+The preparation pipeline reads the original E-Presso Access, Excel, and
+tab-delimited store files without modifying them. It validates table keys and
+relationships before creating a flat analytical table for Looker Studio and
+the later Streamlit application.
+
+Requirements:
+
+- Python 3.9 or newer
+- `mdbtools` installed on macOS (`brew install mdbtools`)
+- Python packages in `requirements.txt`
+
+Run from the repository root:
+
+```bash
+python scripts/prepare_data.py \
+  --input-dir .. \
+  --output-dir data/processed
+```
+
+The command checks the expected five-year revenue control total of
+`$42,174,440.00`. Raw and generated data are excluded from Git.
+
+See `docs/data_dictionary.md` for table grain, fields, and relationships.
 - A controlled analytical assistant
 - Validation and updated-data test evidence
 
